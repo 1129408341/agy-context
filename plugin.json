@@ -4,8 +4,9 @@
   "version": "1.0.0",
   "description": "Port of dsh-context for Google Antigravity: inspect cross-session context insights, 7-category context composition, Step/Turn/Delta/DNA evolution timeline, full context browser, file activity, command executions, and Multi-Agent fleet & communication details.",
   "logo": "assets/logo.svg",
-  "author": "Ported from bowenliang123/dsh-context",
-  "repository": "https://github.com/bowenliang123/dsh-context",
+  "author": "1129408341",
+  "homepage": "https://github.com/1129408341/agy-context",
+  "repository": "https://github.com/1129408341/agy-context",
   "suggestedPrompts": [
     "打开反重力上下文洞察面板，分析当前会话的上下文构成与演进",
     "查看多 Agent 编队与子 Agent 协作通讯详情",

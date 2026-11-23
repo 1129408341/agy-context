@@ -4,6 +4,23 @@
 
 ---
 
+## 📸 实机运行截图
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./docs/screenshots/01-context-dashboard.jpg" alt="上下文统计、Token环形图、耗时与演进时间线" /><br />
+      <sub><b>上下文仪表板</b>：统计三联卡、当前上下文 512K 堆叠条与演进时间线</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="./docs/screenshots/02-browser-events-files.jpg" alt="上下文浏览器、事件流与文件活动" /><br />
+      <sub><b>上下文浏览器 & 事件与文件活动</b>：7 类折叠展开、技能/报错事件与文件改动统计</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
 ## ✨ 核心功能（四大视图）
 
 ### 1. 📊 上下文仪表板（Context）
@@ -51,6 +68,12 @@
 - **Node.js 18+**（零 npm 第三方依赖，无需 `npm install`）
 
 ### 安装方式
+先克隆仓库（或点击 GitHub 页面右上角 **Code → Download ZIP** 解压）：
+```bash
+git clone https://github.com/1129408341/agy-context.git
+cd agy-context
+```
+
 - **Windows 一键安装**：双击运行 `双击安装反重力上下文洞察.bat`
 - **命令行安装**（Windows / macOS / Linux 通用）：
   ```bash
