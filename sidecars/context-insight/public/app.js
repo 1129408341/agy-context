@@ -273,6 +273,7 @@
 
   const state = {
     tab: 'context', // context | fleet | insights | settings
+    embedMode: false,
     settings: {
       lang: 'zh',
       defaultRange: '30d',
@@ -536,6 +537,15 @@
       ? `<option value="${esc(state.session.id)}" selected>${esc(state.session.title)}</option>`
       : '';
 
+    const navHtml = state.embedMode
+      ? ''
+      : `<nav class="agy-tabs">
+        <button class="agy-tab ${state.tab === 'context' ? 'active' : ''}" data-tab="context">📊 ${esc(t('tabContext'))}</button>
+        <button class="agy-tab ${state.tab === 'fleet' ? 'active' : ''}" data-tab="fleet">🚢 ${esc(t('tabFleet'))} <span class="agy-badge">${familySize}</span></button>
+        <button class="agy-tab ${state.tab === 'insights' ? 'active' : ''}" data-tab="insights">🗂️ ${esc(t('tabInsights'))} <span class="agy-badge">${(state.overview && state.overview.kpi && state.overview.kpi.totalSessionsAllTime) || 0}</span></button>
+        <button class="agy-tab ${state.tab === 'settings' ? 'active' : ''}" data-tab="settings">⚙️ ${esc(t('tabSettings'))}</button>
+      </nav>`;
+
     return `<header class="agy-header">
       <div class="agy-header-top">
         <div class="agy-brand">
@@ -546,16 +556,11 @@
           ${extraOpt}${opts || `<option value="">${esc(t('noSessions'))}</option>`}
         </select>
         <div class="agy-header-actions">
-          ${curId && window.parent !== window ? `<button class="agy-icon-btn" data-action="open-agy" data-id="${esc(curId)}" title="${esc(t('openInAgy'))}">↗</button>` : ''}
+          ${curId && window.parent !== window && !state.embedMode ? `<button class="agy-icon-btn" data-action="open-agy" data-id="${esc(curId)}" title="${esc(t('openInAgy'))}">↗</button>` : ''}
           <button class="agy-icon-btn" data-action="refresh">↻ ${esc(t('refresh'))}</button>
         </div>
       </div>
-      <nav class="agy-tabs">
-        <button class="agy-tab ${state.tab === 'context' ? 'active' : ''}" data-tab="context">📊 ${esc(t('tabContext'))}</button>
-        <button class="agy-tab ${state.tab === 'fleet' ? 'active' : ''}" data-tab="fleet">🚢 ${esc(t('tabFleet'))} <span class="agy-badge">${familySize}</span></button>
-        <button class="agy-tab ${state.tab === 'insights' ? 'active' : ''}" data-tab="insights">🗂️ ${esc(t('tabInsights'))} <span class="agy-badge">${(state.overview && state.overview.kpi && state.overview.kpi.totalSessionsAllTime) || 0}</span></button>
-        <button class="agy-tab ${state.tab === 'settings' ? 'active' : ''}" data-tab="settings">⚙️ ${esc(t('tabSettings'))}</button>
-      </nav>
+      ${navHtml}
     </header>`;
   }
 
@@ -1946,6 +1951,28 @@
     const bootData = window.__SIDECAR_BOOT__ || {};
     const params = new URLSearchParams(window.location.search);
     state.currentConvId = params.get('conversationId') || bootData.conversationId || (window.sidecar && window.sidecar.conversationId) || '';
+    state.embedMode = params.get('embed') === '1';
+    const initTab = params.get('tab');
+    if (initTab && ['context', 'fleet', 'insights', 'settings'].includes(initTab)) {
+      state.tab = initTab;
+    }
+
+    window.addEventListener('message', (event) => {
+      const d = event.data;
+      if (!d || typeof d !== 'object') return;
+      if (d.type === 'agy-switch-tab' && d.payload) {
+        const nextTab = d.payload.tab;
+        const nextConv = d.payload.conversationId;
+        if (nextTab && ['context', 'fleet', 'insights', 'settings'].includes(nextTab)) {
+          state.tab = nextTab;
+        }
+        if (nextConv && nextConv !== state.currentConvId) {
+          void selectSession(nextConv, state.tab);
+        } else {
+          render();
+        }
+      }
+    });
 
     if (window.sidecar && window.sidecar.onThemeChange) {
       window.sidecar.onThemeChange((vars) => applyTheme(vars));

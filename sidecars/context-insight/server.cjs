@@ -529,6 +529,7 @@ class AgyContextServer {
           writeJsonAtomic(this.serverInfoPath, {
             host: BIND_HOST,
             port: this.port,
+            token: this.token || '',
             pid: process.pid,
             startedAt: new Date().toISOString(),
           });

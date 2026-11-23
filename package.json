@@ -14,6 +14,8 @@
   },
   "scripts": {
     "install-plugin": "node setup.cjs",
+    "patch-header": "node setup.cjs --patch-header",
+    "unpatch-header": "node setup.cjs --unpatch-header",
     "uninstall-plugin": "node setup.cjs --uninstall",
     "check": "node setup.cjs --check",
     "serve": "node setup.cjs --serve",

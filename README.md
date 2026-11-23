@@ -94,11 +94,21 @@ git clone https://github.com/1129408341/agy-context.git
 cd agy-context
 ```
 
+#### 方式 1：纯原生侧栏模式（零改动客户端，更新不失效）
 - **Windows 一键安装**：双击运行 `双击安装反重力上下文洞察.bat`
 - **命令行安装**（Windows / macOS / Linux 通用）：
   ```bash
   node setup.cjs
   ```
+
+#### 方式 2：复刻 DSH 会话顶栏标签（推荐效率党 · 可选补丁）
+在会话标题正下方直接增加 **`对话` · `上下文（含实时占用%）` · `编队（含成员数）` · `洞察`** 快捷切换栏，一键秒切、按 `Esc` 秒回对话；通过独立标记块 `AGY_CONTEXT_HEADER_BEGIN..END` 无损注入，**自动保留 `AG_ZH` 中文汉化与猫娘挂件（`GEMINI_NEKO_HUD`）补丁，互不冲突**：
+- **Windows 一键安装**：双击运行 `双击安装会话顶栏标签补丁.bat`
+- **命令行安装**：
+  ```bash
+  node setup.cjs --patch-header --kill --relaunch
+  ```
+- **仅移除顶栏补丁**（保留原生侧栏插件与汉化/猫娘）：双击 `双击移除会话顶栏标签补丁.bat` 或运行 `node setup.cjs --unpatch-header --kill --relaunch`
 
 ### 打开方式
 1. 在 Antigravity 对话中发送「**打开上下文洞察**」或调用 `/agy-context`，点击回复中的侧栏胶囊 `[上下文洞察](sidecar://agy-context/context-insight/ui.html)`；
