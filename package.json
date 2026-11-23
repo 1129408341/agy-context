@@ -1,0 +1,25 @@
+{
+  "name": "agy-context",
+  "version": "1.0.0",
+  "description": "Port of dsh-context for Google Antigravity: context composition, evolution timeline, context browser, file activity, command executions, cross-session insights, and Multi-Agent fleet collaboration.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "install-plugin": "node setup.cjs",
+    "uninstall-plugin": "node setup.cjs --uninstall",
+    "check": "node setup.cjs --check",
+    "serve": "node setup.cjs --serve",
+    "test": "node --test tests/engine.test.cjs"
+  },
+  "keywords": [
+    "antigravity",
+    "google-antigravity",
+    "plugin",
+    "sidecar",
+    "context",
+    "dsh-context",
+    "multi-agent"
+  ]
+}
