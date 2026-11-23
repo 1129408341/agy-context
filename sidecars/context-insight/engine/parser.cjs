@@ -286,17 +286,22 @@ function extractCommandProgram(cmdLine) {
     return base.replace(/\.(exe|cmd|bat|ps1)$/i, '');
   }
   const tokens = firstSegment.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
+  let skipAssignmentVal = false;
   for (let tok of tokens) {
     tok = tok.replace(/^["']|["']$/g, '');
-    if (!tok || /^[A-Za-z_][A-Za-z0-9_]*=/.test(tok) || tok.startsWith('$')) continue;
+    if (!tok) continue;
+    if (skipAssignmentVal) { skipAssignmentVal = false; continue; }
+    if (tok === '=' || tok === '+=' || tok === '-eq') { skipAssignmentVal = true; continue; }
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(tok) || tok.startsWith('$') || /^[@({[\]}]/.test(tok)) continue;
     const base = tok.split(/[\\/]/).pop() || tok;
     const norm = base.replace(/\.(exe|cmd|bat|ps1)$/i, '');
+    if (!norm || /^[=<>|&;:()[\]{}]+$/.test(norm)) continue;
     if (norm.toLowerCase() === 'npx' || norm.toLowerCase() === 'pnpm' || norm.toLowerCase() === 'npm') {
       return norm.toLowerCase();
     }
     return norm;
   }
-  return 'shell';
+  return 'powershell';
 }
 
 function extractFilePathFromArgs(args) {

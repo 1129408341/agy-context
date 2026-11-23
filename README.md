@@ -9,12 +9,32 @@
 <table>
   <tr>
     <td width="50%" align="center">
-      <img src="./docs/screenshots/01-context-dashboard.jpg" alt="上下文统计、Token环形图、耗时与演进时间线" /><br />
-      <sub><b>上下文仪表板</b>：统计三联卡、当前上下文 512K 堆叠条与演进时间线</sub>
+      <img src="./docs/screenshots/01-context-dashboard.jpg" alt="上下文仪表板与演进时间线" /><br />
+      <sub><b>上下文仪表板</b>：统计三联卡、当前上下文 512K 堆叠条与 Step 演进时间线</sub>
     </td>
     <td width="50%" align="center">
       <img src="./docs/screenshots/02-browser-events-files.jpg" alt="上下文浏览器、事件流与文件活动" /><br />
       <sub><b>上下文浏览器 & 事件与文件活动</b>：7 类折叠展开、技能/报错事件与文件改动统计</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./docs/screenshots/03-command-executions.jpg" alt="命令执行与程序分布" /><br />
+      <sub><b>命令执行</b>：程序调用分布柱状图、状态筛选与执行耗时明细</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="./docs/screenshots/04-fleet-multi-agent.png" alt="多 Agent 编队协作" /><br />
+      <sub><b>多 Agent 编队（Fleet）</b>：家族关系网络、跨 Agent 泳道与委派/通讯检查</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./docs/screenshots/05-cross-session-insights.jpg" alt="跨会话上下文洞察总览" /><br />
+      <sub><b>跨会话洞察（Insights）</b>：KPI、7 天双柱图、8 周热力图、汇总环形图与工具/技能排行</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="./docs/screenshots/06-settings.png" alt="偏好设置面板" /><br />
+      <sub><b>偏好设置（Settings）</b>：中英双语、USD/CNY 计价、主题与自动刷新配置</sub>
     </td>
   </tr>
 </table>
