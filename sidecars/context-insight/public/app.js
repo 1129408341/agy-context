@@ -127,6 +127,7 @@
       setRange: '洞察默认时间范围',
       setGran: '时间线默认粒度',
       setMode: '时间线默认模式',
+      setAutoOverview: '自动总览带步数阈值',
       setDur: '默认显示耗时曲线',
       setAutoRefresh: '自动刷新间隔（秒，0 为关闭）',
       themeAuto: '跟随客户端',
@@ -249,6 +250,7 @@
       setRange: 'Default Insights Range',
       setGran: 'Default Timeline Granularity',
       setMode: 'Default Timeline Mode',
+      setAutoOverview: 'Auto-Overview Step Threshold',
       setDur: 'Show Duration Curve',
       setAutoRefresh: 'Auto-Refresh Interval (sec, 0=off)',
       themeAuto: 'Auto (Follow IDE)',
@@ -279,6 +281,7 @@
       defaultRange: '30d',
       defaultGranularity: 'step',
       defaultTimelineMode: 'total',
+      overviewAutoSteps: 150,
       currency: 'usd',
       showDurationCurve: true,
       autoRefreshSec: 8,
@@ -291,6 +294,9 @@
     // Context tab UI state
     granularity: 'step',
     tlMode: 'total', // total | delta | overview | dna
+    tlManualMode: false,
+    focusedCat: '',
+    tlAnimSeq: 0,
     showDur: true,
     pinnedSeq: null,
     browserMode: 'cat', // cat | dna
@@ -435,6 +441,10 @@
       if (!state.currentConvId && sess && sess.id) {
         state.currentConvId = sess.id;
       }
+      const autoThr = Number(state.settings.overviewAutoSteps) || 0;
+      if (!state.tlManualMode && autoThr > 0 && sess && sess.stats && sess.stats.steps >= autoThr) {
+        state.tlMode = 'overview';
+      }
     } catch (err) {
       console.error('[agy-context] Load error:', err);
     } finally {
@@ -463,6 +473,8 @@
     state.pinnedSeq = null;
     state.selectedAgentId = '';
     state.selectedCommId = '';
+    state.focusedCat = '';
+    state.tlManualMode = false;
     if (switchTab) state.tab = switchTab;
     const [sess, fl] = await Promise.all([
       apiFetch(`/api/session?id=${encodeURIComponent(convId)}&full=1`),
@@ -470,6 +482,13 @@
     ]);
     state.session = sess;
     state.fleet = fl;
+    const autoThr = Number(state.settings.overviewAutoSteps) || 0;
+    if (autoThr > 0 && sess && sess.stats && sess.stats.steps >= autoThr) {
+      state.tlMode = 'overview';
+    } else {
+      state.tlMode = state.settings.defaultTimelineMode || 'total';
+    }
+    state.tlAnimSeq++;
     render();
   }
 
@@ -593,14 +612,16 @@
     if (mode === 'overview') {
       // Continuous stacked area band fitted to pane width
       const w = 640;
-      const maxTotal = Math.max(1, ...items.map((r) => r.total));
+      const focus = state.focusedCat;
+      const catsToDraw = focus ? CATS.filter((c) => c.key === focus) : CATS;
+      const maxTotal = Math.max(1, ...items.map((r) => (focus ? (r[focus] || 0) : r.total)));
       const n = items.length;
       const xOf = (idx) => (n <= 1 ? w / 2 : 16 + (idx / (n - 1)) * (w - 32));
       const yOf = (val) => padTop + plotH - (val / maxTotal) * plotH;
 
       let polys = '';
       const cumPrev = new Array(n).fill(0);
-      for (const c of CATS) {
+      for (const c of catsToDraw) {
         const topPts = [];
         const botPts = [];
         for (let i = 0; i < n; i++) {
@@ -610,7 +631,7 @@
           topPts.push(`${xOf(i).toFixed(1)},${yOf(next).toFixed(1)}`);
           botPts.unshift(`${xOf(i).toFixed(1)},${yOf(base).toFixed(1)}`);
         }
-        polys += `<polygon points="${topPts.concat(botPts).join(' ')}" fill="${c.color}" fill-opacity="0.82" data-tip="${esc(t('cat_' + c.key))}"/>`;
+        polys += `<polygon class="agy-tl-rise" data-anim="${state.tlAnimSeq}" points="${topPts.concat(botPts).join(' ')}" fill="${c.color}" fill-opacity="0.86" data-tip="${esc(t('cat_' + c.key))}"/>`;
       }
       // Interactive hit columns + milestone pins
       const colW = n > 1 ? (w - 32) / n : 40;
@@ -660,10 +681,12 @@
       chartHtml = `<div class="agy-tl-scroll"><svg class="agy-tl-svg" width="${w}" height="${svgH}" viewBox="0 0 ${w} ${svgH}">${bars}</svg></div>`;
     } else {
       // Total (or DNA-colored) stacked columns + optional Duration Curve + Milestones
+      const focus = state.focusedCat;
+      const catsToDraw = focus ? CATS.filter((c) => c.key === focus) : CATS;
       const barW = 24;
       const gap = 8;
       const w = Math.max(420, items.length * (barW + gap) + 32);
-      const maxTotal = Math.max(1, ...items.map((r) => r.total));
+      const maxTotal = Math.max(1, ...items.map((r) => (focus ? (r[focus] || 0) : r.total)));
       const maxDur = Math.max(1, ...items.map((r) => r.durationMs || 0));
 
       let bars = `<line x1="10" y1="${padTop + plotH}" x2="${w - 10}" y2="${padTop + plotH}" stroke="var(--border-l1)" stroke-width="1"/>`;
@@ -675,14 +698,15 @@
         const isPinned = state.pinnedSeq === r.seq;
         let curY = padTop + plotH;
         let segs = '';
-        for (const c of CATS) {
+        for (const c of catsToDraw) {
           const val = r[c.key] || 0;
           if (val <= 0) continue;
           const h = (val / maxTotal) * plotH;
           curY -= h;
-          segs += `<rect x="${x}" y="${curY.toFixed(1)}" width="${barW}" height="${Math.max(1.2, h).toFixed(1)}" fill="${c.color}"/>`;
+          segs += `<rect class="agy-tl-rise" data-anim="${state.tlAnimSeq}" x="${x}" y="${curY.toFixed(1)}" width="${barW}" height="${Math.max(1.2, h).toFixed(1)}" fill="${c.color}"/>`;
         }
-        const totH = Math.max(2, (r.total / maxTotal) * plotH);
+        const barVal = focus ? (r[focus] || 0) : r.total;
+        const totH = Math.max(2, (barVal / maxTotal) * plotH);
         const topY = padTop + plotH - totH;
 
         let msSvg = '';
@@ -721,6 +745,14 @@
       ? activeReq.brief.incoming.map((x) => `${x.label} (${fmtTok(x.tokens)})`).join(' · ')
       : '-';
 
+    const focusBar = state.tlMode !== 'delta'
+      ? `<div class="agy-focus-bar">${CATS.map((c) => {
+          const isF = state.focusedCat === c.key;
+          const isD = state.focusedCat && !isF;
+          return `<button class="agy-focus-pill ${isF ? 'is-focused' : ''} ${isD ? 'is-dim' : ''}" data-focus-cat="${c.key}"><span class="agy-dot" style="background:${c.color}"></span>${esc(t('cat_' + c.key))}</button>`;
+        }).join('')}</div>`
+      : '';
+
     return `<section class="agy-card" id="sec-timeline">
       <div class="agy-card-head">
         <span class="agy-card-title">📈 ${esc(t('contextTimeline'))}</span>
@@ -739,6 +771,7 @@
           ${state.pinnedSeq ? `<button class="agy-chip" data-action="unpin">✕ ${esc(t('currentView'))}</button>` : ''}
         </div>
       </div>
+      ${focusBar}
       ${chartHtml}
       <div class="agy-brief-box">
         <div class="agy-brief-meta">
@@ -1450,8 +1483,11 @@
 
     const sessCards = (ov.sessions || []).map((s) => `<div class="agy-sess-card" data-open-sess="${esc(s.id)}">
       <div class="agy-row-between">
-        <b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.title)}</b>
-        <span class="agy-pill">${esc(s.workspaceLabel)}</span>
+        <b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.isSubagent ? '🤖 ' : ''}${esc(s.title)}</b>
+        <div class="agy-flex-wrap" style="flex:none">
+          ${s.isSubagent ? `<span class="agy-pill accent">Subagent</span>` : ''}
+          <span class="agy-pill">${esc(s.workspaceLabel)}</span>
+        </div>
       </div>
       ${renderMiniStackBar(s.current, s.contextWindow, 7)}
       <div class="agy-flex-wrap agy-small agy-muted">
@@ -1591,6 +1627,16 @@
           </select>
         </div>
         <div class="agy-setting-row">
+          <span>${esc(t('setAutoOverview'))}</span>
+          <select class="agy-select" data-set-num="overviewAutoSteps">
+            <option value="0" ${Number(st.overviewAutoSteps) === 0 ? 'selected' : ''}>Off</option>
+            <option value="100" ${Number(st.overviewAutoSteps) === 100 ? 'selected' : ''}>100</option>
+            <option value="150" ${Number(st.overviewAutoSteps) === 150 ? 'selected' : ''}>150</option>
+            <option value="200" ${Number(st.overviewAutoSteps) === 200 ? 'selected' : ''}>200</option>
+            <option value="300" ${Number(st.overviewAutoSteps) === 300 ? 'selected' : ''}>300</option>
+          </select>
+        </div>
+        <div class="agy-setting-row">
           <span>${esc(t('setDur'))}</span>
           <input type="checkbox" data-set-bool="showDurationCurve" ${st.showDurationCurve ? 'checked' : ''}/>
         </div>
@@ -1600,7 +1646,7 @@
         </div>
       </div>
       <div class="agy-small agy-muted" style="margin-top:12px">
-        AGY Context v1.0.0 · Ported for Google Antigravity from <b>bowenliang123/dsh-context</b> (Apache-2.0)
+        AGY Context v1.1.0 · Ported for Google Antigravity from <b>bowenliang123/dsh-context</b> (Apache-2.0)
       </div>
     </section>`;
   }
@@ -1783,10 +1829,19 @@
     }
 
     const granBtn = target.closest('[data-gran]');
-    if (granBtn) { state.granularity = granBtn.getAttribute('data-gran'); render(); return; }
+    if (granBtn) { state.granularity = granBtn.getAttribute('data-gran'); state.tlAnimSeq++; render(); return; }
 
     const tlBtn = target.closest('[data-tlmode]');
-    if (tlBtn) { state.tlMode = tlBtn.getAttribute('data-tlmode'); render(); return; }
+    if (tlBtn) { state.tlMode = tlBtn.getAttribute('data-tlmode'); state.tlManualMode = true; state.tlAnimSeq++; render(); return; }
+
+    const focusBtn = target.closest('[data-focus-cat]');
+    if (focusBtn) {
+      const k = focusBtn.getAttribute('data-focus-cat');
+      state.focusedCat = state.focusedCat === k ? '' : k;
+      state.tlAnimSeq++;
+      render();
+      return;
+    }
 
     const brBtn = target.closest('[data-brmode]');
     if (brBtn) { state.browserMode = brBtn.getAttribute('data-brmode'); render(); return; }

@@ -3,6 +3,7 @@
   --bg-card: var(--vscode-editor-background, #141923);
   --bg-sub: var(--vscode-input-background, #1a2130);
   --bg-hover: rgba(148, 163, 184, 0.12);
+  --list-stripe: rgba(148, 163, 184, 0.055);
   --border-l1: rgba(148, 163, 184, 0.24);
   --border-l2: rgba(148, 163, 184, 0.14);
   --text-primary: var(--vscode-foreground, #e5e9f0);
@@ -38,6 +39,7 @@ body.theme-light {
   --bg-card: #ffffff;
   --bg-sub: #f1f4f9;
   --bg-hover: rgba(15, 23, 42, 0.06);
+  --list-stripe: rgba(15, 23, 42, 0.032);
   --border-l1: rgba(15, 23, 42, 0.16);
   --border-l2: rgba(15, 23, 42, 0.09);
   --text-primary: #0f172a;
@@ -932,3 +934,55 @@ body.theme-light .agy-br-detail { background: #f8fafc; }
 .agy-small { font-size: 11px; }
 .agy-row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .agy-flex-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* Upstream dsh-context v0.87.2+ odd-row zebra striping */
+.agy-br-cat-body > .agy-br-item:nth-child(odd) > .agy-br-row:not(:hover),
+.agy-scroll-list > .agy-list-row:nth-child(odd):not(:hover):not(.selected),
+.agy-scroll-list > div:nth-child(odd) > .agy-br-row:not(:hover) {
+  background: var(--list-stripe);
+}
+
+/* Timeline smooth rise-in animation & category focus highlight */
+@keyframes agy-rise-y {
+  from { transform: scaleY(0.12); opacity: 0.35; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+.agy-tl-rise {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: agy-rise-y 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.agy-focus-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.agy-focus-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  border: 1px solid var(--border-l2);
+  background: var(--bg-sub);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: opacity 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.agy-focus-pill:hover { border-color: var(--accent); color: var(--text-primary); }
+.agy-focus-pill.is-focused { border-color: var(--accent); background: var(--accent-soft); color: var(--text-primary); font-weight: 600; }
+.agy-focus-pill.is-dim { opacity: 0.45; }
+
+.agy-card-ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  opacity: 0.85;
+  color: var(--accent);
+}

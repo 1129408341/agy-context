@@ -347,6 +347,46 @@ test('analyzer calibrates gemini-4 to 512K, merges overlapping tool intervals, a
   }
 });
 
+test('analyzer and overview parse SYSTEM_MESSAGE subagent transcripts and resolve real role titles', () => {
+  const { tmpRoot, rootId, childId } = createFixtureAppData();
+  try {
+    // Overwrite child step 0 with real Antigravity subagent SYSTEM_MESSAGE shape
+    writeJsonl(path.join(tmpRoot, 'brain', childId, '.system_generated', 'logs', 'transcript.jsonl'), [
+      {
+        step_index: 0,
+        source: 'SYSTEM',
+        type: 'SYSTEM_MESSAGE',
+        status: 'DONE',
+        created_at: new Date().toISOString(),
+        content: 'The following is a <SYSTEM_MESSAGE>\n<SYSTEM_MESSAGE>\n[Message] timestamp=2026-11-23T17:54:25Z sender=parent content=Inspect architecture deeply\n</SYSTEM_MESSAGE>',
+      },
+      {
+        step_index: 1,
+        source: 'MODEL',
+        type: 'PLANNER_RESPONSE',
+        status: 'DONE',
+        created_at: new Date().toISOString(),
+        model: 'claude-opus-5-5-high',
+        input_tokens: 12000,
+        cache_read_tokens: 9000,
+        output_tokens: 200,
+        content: 'Done inspecting.',
+      },
+    ]);
+    const store = new TranscriptStore({ appDataDir: tmpRoot });
+    const child = analyzeSession(childId, store);
+    assert.equal(child.messagesIn.length, 1);
+    assert.ok(child.title.includes('Inspect architecture deeply'));
+    const ov = buildOverview(store, { range: 'all' });
+    const childCard = ov.sessions.find((s) => s.id === childId);
+    assert.ok(childCard);
+    assert.equal(childCard.isSubagent, true);
+    assert.equal(childCard.subagentRole, 'Codebase Researcher');
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
 test('real local Antigravity transcripts parse cleanly without errors', () => {
   const store = new TranscriptStore();
   const ids = store.listConversationIds();

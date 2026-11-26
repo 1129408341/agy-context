@@ -48,9 +48,28 @@ function buildOverview(store, query = {}) {
 
   const ids = store.listConversationIds();
   const allAnalyzed = [];
+  const subagentRoleById = new Map();
   for (const id of ids) {
     const a = analyzeSession(id, store, { preferFull: false });
-    if (a && !a.empty) allAnalyzed.push(a);
+    if (a && !a.empty) {
+      allAnalyzed.push(a);
+      for (const link of a.subagentLinks || []) {
+        if (link.childConvId && link.role) {
+          subagentRoleById.set(link.childConvId, { role: link.role, typeName: link.typeName || 'subagent', parentId: id });
+        }
+      }
+    }
+  }
+  for (const a of allAnalyzed) {
+    const subInfo = subagentRoleById.get(a.id);
+    if (subInfo) {
+      a.isSubagent = true;
+      a.subagentRole = subInfo.role;
+      a.parentConvId = subInfo.parentId;
+      if (!a.title || a.title === a.id.slice(0, 8)) {
+        a.title = subInfo.role;
+      }
+    }
   }
 
   // Heatmap (last 56 days / 8 weeks) across all sessions
@@ -268,6 +287,8 @@ function buildOverview(store, query = {}) {
     toolCalls: s.stats.toolCalls,
     compactions: s.stats.compactions,
     subagentsSpawned: s.stats.subagentsSpawned,
+    isSubagent: Boolean(s.isSubagent),
+    subagentRole: s.subagentRole || '',
     skillsLoaded: s.stats.skillsLoaded,
     lastActiveMs: s.timing.lastMs,
     durationMs: s.timing.totalMs,

@@ -256,7 +256,7 @@ function analyzeSession(convId, store, options = {}) {
       }
     }
 
-    if (type === 'USER_INPUT' || source === 'USER_EXPLICIT') {
+    if (type === 'USER_INPUT' || type === 'SYSTEM_MESSAGE' || source === 'USER_EXPLICIT') {
       const { userText, injectedText, systemMessages } = extractUserParts(step.content || '');
       const isCompactionStep =
         /^#\s*Resuming from a compaction/i.test(String(step.content || '').trim()) ||
@@ -961,7 +961,8 @@ function analyzeSession(convId, store, options = {}) {
     : modelMeta.ctx;
 
   const workspace = inferWorkspaceFromPaths(seenPaths);
-  const title = annotation?.title || makePreview(firstUserText, 64) || convId.slice(0, 8);
+  const firstSysContent = messagesIn.length > 0 ? messagesIn[0].content : '';
+  const title = annotation?.title || makePreview(firstUserText || firstSysContent, 64) || convId.slice(0, 8);
 
   return {
     ok: true,

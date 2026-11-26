@@ -1,7 +1,7 @@
 {
   "name": "agy-context",
   "displayName": "AGY Context · 上下文洞察与多 Agent 编队",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Port of dsh-context for Google Antigravity: inspect cross-session context insights, 7-category context composition, Step/Turn/Delta/DNA evolution timeline, full context browser, file activity, command executions, and Multi-Agent fleet & communication details.",
   "logo": "assets/logo.svg",
   "author": "1129408341",

@@ -25,7 +25,7 @@ const MODEL_CATALOG = [
   { match: /gemini[-_ ]?2\.5[-_ ]?pro/i, label: 'Gemini 2.5 Pro', ctx: 1000000, maxOut: 65536, miss: 1.25, hit: 0.31, out: 10.0 },
   { match: /gemini[-_ ]?2\.5[-_ ]?flash/i, label: 'Gemini 2.5 Flash', ctx: 1000000, maxOut: 65536, miss: 0.3, hit: 0.075, out: 2.5 },
   { match: /gemini/i, label: 'Gemini', ctx: 512000, maxOut: 65536, miss: 1.25, hit: 0.31, out: 10.0 },
-  { match: /claude[-_ ]?(?:opus|4[-_ .]?[56]?[-_ ]?opus)/i, label: 'Claude Opus', ctx: 200000, maxOut: 32000, miss: 15.0, hit: 1.5, out: 75.0 },
+  { match: /claude[-_ ]?(?:opus|5[-_ .]?[0-9]?[-_ ]?opus|4[-_ .]?[56]?[-_ ]?opus)/i, label: 'Claude Opus', ctx: 200000, maxOut: 32000, miss: 15.0, hit: 1.5, out: 75.0 },
   { match: /claude[-_ ]?(?:sonnet|4[-_ .]?[56]?[-_ ]?sonnet|3\.7|3\.5)/i, label: 'Claude Sonnet', ctx: 200000, maxOut: 64000, miss: 3.0, hit: 0.3, out: 15.0 },
   { match: /claude[-_ ]?haiku/i, label: 'Claude Haiku', ctx: 200000, maxOut: 16000, miss: 0.8, hit: 0.08, out: 4.0 },
   { match: /claude/i, label: 'Claude', ctx: 200000, maxOut: 32000, miss: 3.0, hit: 0.3, out: 15.0 },
