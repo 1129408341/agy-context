@@ -419,7 +419,7 @@ class AgyContextServer {
       sendJson(res, 200, {
         ok: true,
         plugin: PLUGIN_ID,
-        version: '1.1.0',
+        version: '1.2.0',
         appDataDir: this.appDataDir,
         conversationsCount: ids.length,
         activeConversationId: this.pickDefaultConversationId(urlObj.searchParams.get('conversationId') || ''),

@@ -1,6 +1,6 @@
-# AGY Context · 反重力上下文洞察（`dsh-context` 移植版 v1.1.0）
+# AGY Context · 反重力上下文洞察（`dsh-context` 移植版 v1.2.0）
 
-> 将 DeepSeek Harness 官方推荐的上下文洞察插件 [`bowenliang123/dsh-context`](https://github.com/bowenliang123/dsh-context)（同步至 `v0.87.2+`）完整移植到 **Google Antigravity** 的原生插件（Plugin + Sidecar 侧栏面板 + Skill + 可选 DSH 会话顶栏标签补丁），零外部运行时依赖，开箱即用。
+> 将 DeepSeek Harness 官方推荐的上下文洞察插件 [`bowenliang123/dsh-context`](https://github.com/bowenliang123/dsh-context)（同步至 `v0.88.0`：支持滚轮横向滑动时间线、总览带滚轮缩放与常显滚动条）完整移植到 **Google Antigravity** 的原生插件（Plugin + Sidecar 侧栏面板 + Skill + 可选 DSH 会话顶栏标签补丁），零外部运行时依赖，开箱即用。
 
 ---
 

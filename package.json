@@ -1,6 +1,6 @@
 {
   "name": "agy-context",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Port of dsh-context for Google Antigravity: context composition, evolution timeline, context browser, file activity, command executions, cross-session insights, and Multi-Agent fleet collaboration.",
   "author": "1129408341",
   "homepage": "https://github.com/1129408341/agy-context",

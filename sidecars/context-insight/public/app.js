@@ -75,6 +75,8 @@
       modeDelta: '增量 Delta',
       modeOverview: '总览带',
       modeDna: 'DNA 模式',
+      resetZoom: '重置缩放',
+      zoomHint: '滚轮缩放',
       durCurve: '耗时曲线',
       stepBrief: '步骤摘要',
       pinnedStep: '已固定步骤',
@@ -198,6 +200,8 @@
       modeDelta: 'Delta',
       modeOverview: 'Overview',
       modeDna: 'DNA',
+      resetZoom: 'Reset Zoom',
+      zoomHint: 'Wheel to zoom',
       durCurve: 'Duration',
       stepBrief: 'Step Brief',
       pinnedStep: 'Pinned Step',
@@ -297,6 +301,10 @@
     tlManualMode: false,
     focusedCat: '',
     tlAnimSeq: 0,
+    tlSkipAnim: false,
+    ovZoomStart: 0,
+    ovZoomEnd: null,
+    tlLastScrollLeft: null,
     showDur: true,
     pinnedSeq: null,
     browserMode: 'cat', // cat | dna
@@ -475,6 +483,10 @@
     state.selectedCommId = '';
     state.focusedCat = '';
     state.tlManualMode = false;
+    state.ovZoomStart = 0;
+    state.ovZoomEnd = null;
+    state.tlLastScrollLeft = null;
+    state.tlSkipAnim = false;
     if (switchTab) state.tab = switchTab;
     const [sess, fl] = await Promise.all([
       apiFetch(`/api/session?id=${encodeURIComponent(convId)}&full=1`),
@@ -609,35 +621,51 @@
     const plotH = svgH - padTop - padBot;
 
     let chartHtml = '';
+    let isOverviewZoomed = false;
+    let ovZoomLabel = '';
     if (mode === 'overview') {
-      // Continuous stacked area band fitted to pane width
+      // Continuous stacked area band fitted to pane width (with mouse-wheel zoom)
       const w = 640;
+      const totalN = items.length;
+      let zStart = Math.max(0, Math.min(totalN - 1, Number(state.ovZoomStart) || 0));
+      let zEnd = state.ovZoomEnd === null ? totalN - 1 : Math.max(zStart, Math.min(totalN - 1, Number(state.ovZoomEnd)));
+      if (zEnd - zStart < 5 && totalN > 6) {
+        zEnd = Math.min(totalN - 1, zStart + 5);
+        zStart = Math.max(0, zEnd - 5);
+      }
+      isOverviewZoomed = totalN > 6 && (zStart > 0 || zEnd < totalN - 1);
+      const viewItems = items.slice(zStart, zEnd + 1);
+      if (isOverviewZoomed) {
+        const pctSpan = Math.max(1, Math.round((viewItems.length / totalN) * 100));
+        ovZoomLabel = `#${viewItems[0].seq}–#${viewItems[viewItems.length - 1].seq} (${pctSpan}%)`;
+      }
       const focus = state.focusedCat;
       const catsToDraw = focus ? CATS.filter((c) => c.key === focus) : CATS;
-      const maxTotal = Math.max(1, ...items.map((r) => (focus ? (r[focus] || 0) : r.total)));
-      const n = items.length;
+      const maxTotal = Math.max(1, ...viewItems.map((r) => (focus ? (r[focus] || 0) : r.total)));
+      const n = viewItems.length;
       const xOf = (idx) => (n <= 1 ? w / 2 : 16 + (idx / (n - 1)) * (w - 32));
       const yOf = (val) => padTop + plotH - (val / maxTotal) * plotH;
 
       let polys = '';
       const cumPrev = new Array(n).fill(0);
+      const animCls = state.tlSkipAnim ? '' : 'agy-tl-rise';
       for (const c of catsToDraw) {
         const topPts = [];
         const botPts = [];
         for (let i = 0; i < n; i++) {
           const base = cumPrev[i];
-          const next = base + (items[i][c.key] || 0);
+          const next = base + (viewItems[i][c.key] || 0);
           cumPrev[i] = next;
           topPts.push(`${xOf(i).toFixed(1)},${yOf(next).toFixed(1)}`);
           botPts.unshift(`${xOf(i).toFixed(1)},${yOf(base).toFixed(1)}`);
         }
-        polys += `<polygon class="agy-tl-rise" data-anim="${state.tlAnimSeq}" points="${topPts.concat(botPts).join(' ')}" fill="${c.color}" fill-opacity="0.86" data-tip="${esc(t('cat_' + c.key))}"/>`;
+        polys += `<polygon class="${animCls}" data-anim="${state.tlAnimSeq}" points="${topPts.concat(botPts).join(' ')}" fill="${c.color}" fill-opacity="0.86" data-tip="${esc(t('cat_' + c.key))}"/>`;
       }
       // Interactive hit columns + milestone pins
       const colW = n > 1 ? (w - 32) / n : 40;
       let overlays = '';
       for (let i = 0; i < n; i++) {
-        const r = items[i];
+        const r = viewItems[i];
         const cx = xOf(i);
         const isPinned = state.pinnedSeq === r.seq;
         const hasMs = r.milestones && r.milestones.length > 0;
@@ -647,11 +675,12 @@
         }
         overlays += `<rect x="${(cx - colW / 2).toFixed(1)}" y="${padTop}" width="${Math.max(6, colW).toFixed(1)}" height="${plotH}" fill="${isPinned ? 'rgba(99,102,241,0.18)' : 'transparent'}" class="agy-tl-bar-group" data-pin-seq="${r.seq}" data-tip="Step #${r.seq} · ${fmtTok(r.total)} (${r.delta >= 0 ? '+' : ''}${fmtTok(r.delta)})"/>`;
       }
-      chartHtml = `<svg class="agy-tl-svg" viewBox="0 0 ${w} ${svgH}" style="width:100%;height:${svgH}px">
+      chartHtml = `<svg id="agy-tl-overview-svg" class="agy-tl-svg ${isOverviewZoomed ? 'is-zoomed' : ''}" data-total-n="${totalN}" data-zstart="${zStart}" data-zend="${zEnd}" viewBox="0 0 ${w} ${svgH}" style="width:100%;height:${svgH}px">
         <line x1="12" y1="${padTop + plotH}" x2="${w - 12}" y2="${padTop + plotH}" stroke="var(--border-l1)" stroke-width="1"/>
         ${polys}${overlays}
-        <text x="16" y="${svgH - 6}" fill="var(--text-dim)" font-size="10">#${items[0].seq}</text>
-        <text x="${w - 16}" y="${svgH - 6}" text-anchor="end" fill="var(--text-dim)" font-size="10">#${items[n - 1].seq} · max ${fmtTok(maxTotal)}</text>
+        <text x="16" y="${svgH - 6}" fill="var(--text-dim)" font-size="10">#${viewItems[0].seq}</text>
+        <text x="${w / 2}" y="${svgH - 6}" text-anchor="middle" fill="var(--text-dim)" font-size="9.5">${esc(isOverviewZoomed ? ovZoomLabel : t('zoomHint'))}</text>
+        <text x="${w - 16}" y="${svgH - 6}" text-anchor="end" fill="var(--text-dim)" font-size="10">#${viewItems[n - 1].seq} · max ${fmtTok(maxTotal)}</text>
       </svg>`;
     } else if (mode === 'delta') {
       const barW = 24;
@@ -768,6 +797,7 @@
             <button class="agy-seg-btn ${state.tlMode === 'overview' ? 'active' : ''}" data-tlmode="overview">${esc(t('modeOverview'))}</button>
           </div>
           ${state.tlMode === 'total' ? `<button class="agy-chip ${state.showDur ? 'active' : ''}" data-action="toggle-dur">⏱ ${esc(t('durCurve'))}</button>` : ''}
+          ${isOverviewZoomed ? `<button class="agy-chip active" data-action="reset-zoom">🔍 ${esc(ovZoomLabel)} · ${esc(t('resetZoom'))} ✕</button>` : ''}
           ${state.pinnedSeq ? `<button class="agy-chip" data-action="unpin">✕ ${esc(t('currentView'))}</button>` : ''}
         </div>
       </div>
@@ -1646,7 +1676,7 @@
         </div>
       </div>
       <div class="agy-small agy-muted" style="margin-top:12px">
-        AGY Context v1.1.0 · Ported for Google Antigravity from <b>bowenliang123/dsh-context</b> (Apache-2.0)
+        AGY Context v1.2.0 · Ported for Google Antigravity from <b>bowenliang123/dsh-context</b> (Apache-2.0)
       </div>
     </section>`;
   }
@@ -1691,9 +1721,67 @@
 
     root.innerHTML = `${renderHeader()}<main class="agy-main">${mainHtml}</main>`;
     bindInputs();
-    if (state.tab === 'context' && !state.pinnedSeq) {
+    state.tlSkipAnim = false;
+    if (state.tab === 'context') {
       const tlScroll = root.querySelector('.agy-tl-scroll');
-      if (tlScroll) tlScroll.scrollLeft = tlScroll.scrollWidth;
+      if (tlScroll) {
+        if (state.tlLastScrollLeft !== null) {
+          tlScroll.scrollLeft = state.tlLastScrollLeft;
+        } else if (!state.pinnedSeq) {
+          tlScroll.scrollLeft = tlScroll.scrollWidth;
+        }
+        tlScroll.addEventListener('scroll', () => {
+          state.tlLastScrollLeft = tlScroll.scrollLeft;
+        }, { passive: true });
+        tlScroll.addEventListener('wheel', (e) => {
+          if (tlScroll.scrollWidth <= tlScroll.clientWidth) return;
+          const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+          if (!delta) return;
+          const atStart = tlScroll.scrollLeft <= 0 && delta < 0;
+          const atEnd = tlScroll.scrollLeft + tlScroll.clientWidth >= tlScroll.scrollWidth - 1 && delta > 0;
+          if (atStart || atEnd) return;
+          e.preventDefault();
+          tlScroll.scrollLeft += delta;
+          state.tlLastScrollLeft = tlScroll.scrollLeft;
+        }, { passive: false });
+      }
+      const ovSvg = document.getElementById('agy-tl-overview-svg');
+      if (ovSvg) {
+        ovSvg.addEventListener('wheel', (e) => {
+          const totalN = parseInt(ovSvg.getAttribute('data-total-n') || '0', 10);
+          if (totalN <= 6 || !e.deltaY) return;
+          e.preventDefault();
+          const curStart = parseInt(ovSvg.getAttribute('data-zstart') || '0', 10);
+          const curEnd = parseInt(ovSvg.getAttribute('data-zend') || String(totalN - 1), 10);
+          const curSpan = Math.max(5, curEnd - curStart);
+          const rect = ovSvg.getBoundingClientRect();
+          const ratio = rect.width > 0 ? Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) : 0.5;
+          const anchor = curStart + curSpan * ratio;
+          const factor = e.deltaY < 0 ? 0.78 : 1.28;
+          const nextSpan = Math.max(5, Math.min(totalN - 1, Math.round(curSpan * factor)));
+          if (nextSpan >= totalN - 1) {
+            state.ovZoomStart = 0;
+            state.ovZoomEnd = null;
+          } else {
+            let nStart = Math.round(anchor - nextSpan * ratio);
+            let nEnd = nStart + nextSpan;
+            if (nStart < 0) { nStart = 0; nEnd = nextSpan; }
+            if (nEnd > totalN - 1) { nEnd = totalN - 1; nStart = Math.max(0, nEnd - nextSpan); }
+            state.ovZoomStart = nStart;
+            state.ovZoomEnd = nEnd;
+          }
+          state.tlSkipAnim = true;
+          render();
+        }, { passive: false });
+        ovSvg.addEventListener('dblclick', () => {
+          if (state.ovZoomStart !== 0 || state.ovZoomEnd !== null) {
+            state.ovZoomStart = 0;
+            state.ovZoomEnd = null;
+            state.tlSkipAnim = true;
+            render();
+          }
+        });
+      }
     }
   }
 
@@ -1786,8 +1874,9 @@
     if (actBtn) {
       const act = actBtn.getAttribute('data-action');
       if (act === 'refresh') void loadAll(false);
-      else if (act === 'toggle-dur') { state.showDur = !state.showDur; render(); }
-      else if (act === 'unpin') { state.pinnedSeq = null; render(); }
+      else if (act === 'toggle-dur') { state.showDur = !state.showDur; state.tlSkipAnim = true; render(); }
+      else if (act === 'unpin') { state.pinnedSeq = null; state.tlSkipAnim = true; render(); }
+      else if (act === 'reset-zoom') { state.ovZoomStart = 0; state.ovZoomEnd = null; state.tlSkipAnim = true; render(); }
       else if (act === 'toggle-quiet') { state.hideQuietLanes = !state.hideQuietLanes; render(); }
       return;
     }
@@ -1829,10 +1918,10 @@
     }
 
     const granBtn = target.closest('[data-gran]');
-    if (granBtn) { state.granularity = granBtn.getAttribute('data-gran'); state.tlAnimSeq++; render(); return; }
+    if (granBtn) { state.granularity = granBtn.getAttribute('data-gran'); state.ovZoomStart = 0; state.ovZoomEnd = null; state.tlLastScrollLeft = null; state.tlAnimSeq++; render(); return; }
 
     const tlBtn = target.closest('[data-tlmode]');
-    if (tlBtn) { state.tlMode = tlBtn.getAttribute('data-tlmode'); state.tlManualMode = true; state.tlAnimSeq++; render(); return; }
+    if (tlBtn) { state.tlMode = tlBtn.getAttribute('data-tlmode'); state.tlManualMode = true; state.ovZoomStart = 0; state.ovZoomEnd = null; state.tlLastScrollLeft = null; state.tlAnimSeq++; render(); return; }
 
     const focusBtn = target.closest('[data-focus-cat]');
     if (focusBtn) {

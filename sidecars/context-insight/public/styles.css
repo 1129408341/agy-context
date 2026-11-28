@@ -479,13 +479,42 @@ html, body {
 
 /* Timeline Chart */
 .agy-tl-scroll {
-  overflow-x: auto;
-  padding-bottom: 4px;
+  overflow-x: scroll;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-l1) transparent;
+}
+
+.agy-tl-scroll::-webkit-scrollbar {
+  height: 7px;
+}
+
+.agy-tl-scroll::-webkit-scrollbar-track {
+  background: var(--bg-sub);
+  border-radius: 99px;
+}
+
+.agy-tl-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-l1);
+  border-radius: 99px;
+}
+
+.agy-tl-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
 }
 
 .agy-tl-svg {
   display: block;
   min-width: 100%;
+}
+
+#agy-tl-overview-svg {
+  cursor: zoom-in;
+  touch-action: none;
+}
+
+#agy-tl-overview-svg.is-zoomed {
+  cursor: zoom-out;
 }
 
 .agy-tl-bar-group { cursor: pointer; }
